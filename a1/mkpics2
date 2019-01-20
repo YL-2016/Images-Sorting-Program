@@ -1,0 +1,82 @@
+#!/bin/sh
+
+# check if there are two params, otherwise exit
+if [ $# -ne 2 ]
+then
+    echo '[fail] there must be two parameters ./mkpics2 <column number> <dirctory>' >&2
+    exit -1
+else 
+    # check if the 1st param is a number more than 1, otherwise exit
+    colno=`expr $1 - 1`
+    if [ $? -ne 0 ] || [ $1 -lt 2 ];
+    then
+        echo '[fail] column number must be more than 1' >&2
+        exit -1
+    fi
+fi
+
+colno=$1
+
+echo "[success] start to generate HTML" >&2
+
+echo "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">"
+echo "<html>"
+echo "  <head>"
+echo "    <title>Pictures</title>"
+echo "  </head>"
+echo "  <body>"
+echo "    <h1>Pictures</h1>"
+
+# travel the year dir
+for year_dir in "$2"/[0-9][0-9][0-9][0-9]
+do
+    if [ "$year_dir" = "$2/*" ]
+    then
+        echo '  </body>'
+        echo '</html>'
+        echo '[fail] directory is empty' >&2
+        exit -1
+    fi
+
+    # check if the year_dir is a directory
+    file "$year_dir" | grep -q directory
+    if [ $? -eq 0 ]; then
+        year="$(echo $year_dir | rev | cut -d'/' -f1 | rev)"
+        echo "    <h2>$year</h2>"
+        echo '    <table>'
+
+        # travel the month dir
+        int=1
+        for month_dir in "$year_dir"/[0-9][0-9]
+        do
+            for pic in "$month_dir"/*; do
+                # check if the file is a jpeg file
+                if file --mime-type "$pic" | grep -q jpeg$; then
+                    if test `expr $int % $colno` = 1; then
+                    echo "      <tr>"  
+                    fi
+
+                    echo "        <td><img src=\"$pic\" height=100></td>"
+
+                    if test `expr $int % $colno` = 0; then
+                        echo "      </tr>"  
+                    fi
+                    int=`expr $int + 1`;
+                else
+                    echo "[fail] $pic is not a jpeg file" >&2 
+                fi    
+            done
+        done
+        # check if there lack a </tr>
+        if [ $int -gt 1 ] && test `expr $int % $colno` != 1; then
+            echo "      </tr>"  
+        fi
+
+        echo "    </table>"
+    fi
+done
+
+echo "  </body>"
+echo "</html>"
+
+exit 0

@@ -1,0 +1,49 @@
+#!/bin/sh
+
+export PATH=$PATH:/courses/courses/cscb09s18/bin
+
+echo '[success] adding path to run exiftime success' >&2
+
+if [ $# -eq 0 ]
+then
+    # if there is no dirctory, then exit
+    echo '[fail] no directory' >&2
+    exit -1
+elif [ $# -gt 1 ]
+then
+    # if there are multi dirctories, then exit
+    echo '[fail] only 1 directory is allowed' >&2
+    exit -1
+else
+    # pushd the directory to current process env
+    echo "[success] valid Directory: $1"
+fi
+
+
+for entry in "$1"/*
+do
+    # only the file is a jpeg file, then process it
+    if file --mime-type "$entry" | grep -q jpeg$; then
+        # str="Image Generated: 2006:07:09 00:00:00"
+        year_month=$(exiftime -tg "$entry" | cut -d ':' -f 2-3)
+        echo "$entry: $year_month"
+        year=$(echo $year_month | cut -d ':' -f 1)
+        month=$(echo $year_month | cut -d ':' -f 2)
+        tmp="$1/$year/$month"
+
+        echo $tmp
+        # mkdir recursively
+        if [ -d $tmp ] || mkdir -p $tmp; then
+            # move the file to target directory
+            mv "$entry" "$tmp/"
+            echo "move $entry to $tmp"
+        fi
+    else
+        echo "[fail] $entry is not a jpeg file" >&2
+    fi
+
+done
+
+echo "[success] has moved all pictures" >&2
+
+exit 0
